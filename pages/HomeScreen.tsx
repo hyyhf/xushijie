@@ -1,0 +1,235 @@
+import React, { useState } from 'react';
+import { Bell, Menu, Search, Play, Volume2, Maximize2, ChevronRight, Zap, Gift, ShoppingBag, Smile } from 'lucide-react';
+import { AppScreen } from '../types';
+
+interface HomeScreenProps {
+  onNavigate: (screen: AppScreen) => void;
+}
+
+const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
+  const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
+
+  const liveStreams = [
+    {
+      id: 1,
+      title: "职场穿搭专场",
+      subtitle: "高级感西装",
+      rank: 1,
+      image: "https://picsum.photos/400/300?random=1",
+      videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4"
+    },
+    {
+      id: 2,
+      title: "美妆护肤精选",
+      subtitle: "敏感肌修护",
+      rank: 2,
+      image: "https://picsum.photos/400/300?random=2",
+      videoUrl: "https://www.w3schools.com/html/movie.mp4"
+    }
+  ];
+
+  return (
+    <div className="pb-10">
+      {/* Header */}
+      <header className="p-4 flex items-center justify-between sticky top-0 z-40 bg-white/80 backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center text-white font-bold">V</div>
+          <div className="flex flex-col">
+            <h1 className="text-slate-900 text-lg font-bold tracking-tight leading-none">虚视界</h1>
+            <span className="text-slate-400 text-[10px] font-medium tracking-wide">虚拟带货平台</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="text-slate-600 hover:text-primary-500 transition-colors">
+            <Bell size={20} />
+          </button>
+          <button className="text-slate-600 hover:text-primary-500 transition-colors">
+            <Menu size={20} />
+          </button>
+        </div>
+      </header>
+
+      {/* Search Bar */}
+      <div className="px-4 pb-2">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="搜索虚拟主播、商品"
+            className="w-full bg-gray-100 text-sm rounded-full py-3 pl-10 pr-4 border-none focus:ring-2 focus:ring-primary-500 outline-none transition-all placeholder-gray-400"
+          />
+          <Search className="absolute left-3.5 top-3 text-gray-400" size={18} />
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <main className="space-y-6 px-4 mt-4">
+
+        {/* Live Highlights */}
+        <section>
+          <div className="flex justify-between items-end mb-3">
+            <div>
+              <h2 className="text-slate-900 text-lg font-bold flex items-center gap-2">
+                直播高光
+                <span className="px-1.5 py-0.5 bg-primary-500 text-white text-[10px] rounded font-bold">LIVE</span>
+              </h2>
+              <p className="text-slate-400 text-xs mt-0.5">月度排名前三商家</p>
+            </div>
+            <button
+              onClick={() => onNavigate(AppScreen.LIVE_ROOM_CUSTOMIZE)}
+              className="text-slate-500 text-xs flex items-center bg-gray-100 px-2 py-1 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              主播风格 <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {liveStreams.map((stream) => (
+              <div key={stream.id} className="bg-white rounded-2xl overflow-hidden shadow-card relative border border-gray-100 flex flex-col">
+                <div className="relative aspect-[4/5] bg-gray-200">
+                  {playingVideoId === stream.id ? (
+                    <video
+                      src={stream.videoUrl}
+                      className="w-full h-full object-cover"
+                      controls
+                      autoPlay
+                      playsInline
+                    />
+                  ) : (
+                    <>
+                      <div className="absolute top-2 left-2 z-10 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm font-bold">TOP {stream.rank}</div>
+                      <img src={stream.image} alt={stream.title} className="w-full h-full object-cover" />
+
+                      {/* Play Overlay */}
+                      <div
+                        className="absolute inset-0 bg-black/10 hover:bg-black/20 transition-colors flex items-center justify-center cursor-pointer group"
+                        onClick={() => setPlayingVideoId(stream.id)}
+                      >
+                        <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg border border-white/30 group-hover:scale-110 transition-transform">
+                          <Play size={20} fill="white" className="text-white ml-1" />
+                        </div>
+                      </div>
+
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 pointer-events-none">
+                        <div className="flex justify-end text-white/90">
+                          <div className="flex gap-2">
+                            <Volume2 size={14} />
+                            <Maximize2 size={14} />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="p-3">
+                  <h3 className="font-bold text-sm text-slate-800 line-clamp-1">{stream.title}</h3>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <p className="text-xs text-slate-500 truncate">{stream.subtitle}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Hot Products */}
+        <section
+          onClick={() => onNavigate(AppScreen.HOT_PRODUCTS)}
+          className="cursor-pointer transition-transform active:scale-[0.99]"
+        >
+          <div className="bg-gradient-to-r from-orange-50 to-white rounded-2xl p-4 border border-orange-100 hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-slate-900 font-bold flex items-center gap-2">
+                <Zap size={18} className="text-primary-500 fill-current" />
+                热门推荐区
+              </h2>
+              <div className="text-xs text-slate-400 flex items-center">
+                更多 <ChevronRight size={14} />
+              </div>
+            </div>
+
+            <div className="flex gap-3 overflow-x-auto no-scrollbar pointer-events-none">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex-shrink-0 flex items-center gap-3 w-48 bg-white p-2.5 rounded-xl border border-gray-100 shadow-sm">
+                  <img src={`https://picsum.photos/100/100?random=${i + 10}`} className="w-12 h-12 rounded-lg object-cover" alt="Product" />
+                  <div className="flex flex-col justify-center">
+                    <span className="text-xs font-bold text-slate-800 truncate w-24">主播同款口红</span>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className="text-[10px] text-orange-500 bg-orange-50 px-1 rounded">热销</span>
+                      <span className="text-[10px] text-slate-400">999+</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Interactive Zone */}
+        <section className="grid grid-cols-2 gap-3">
+          <div
+            onClick={() => onNavigate(AppScreen.AVATAR)} // Optional: Reuse for avatar
+            className="bg-white p-4 rounded-2xl shadow-card border border-gray-100 relative overflow-hidden active:scale-[0.98] transition-transform cursor-pointer"
+          >
+            <div className="absolute right-0 top-0 w-20 h-20 bg-blue-50 rounded-full -mr-6 -mt-6"></div>
+            <div className="relative z-10">
+              <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-2">
+                <Gift size={20} />
+              </div>
+              <h3 className="font-bold text-sm text-slate-800">赢免单大奖</h3>
+              <p className="text-[10px] text-slate-400 mt-1">答题挑战与虚拟道具</p>
+            </div>
+          </div>
+          <div
+            onClick={() => onNavigate(AppScreen.AVATAR)}
+            className="bg-white p-4 rounded-2xl shadow-card border border-gray-100 relative overflow-hidden active:scale-[0.98] transition-transform cursor-pointer"
+          >
+            <div className="absolute right-0 top-0 w-20 h-20 bg-purple-50 rounded-full -mr-6 -mt-6"></div>
+            <div className="relative z-10">
+              <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-2">
+                <Smile size={20} />
+              </div>
+              <h3 className="font-bold text-sm text-slate-800">虚拟形象</h3>
+              <p className="text-[10px] text-slate-400 mt-1">定制您的专属替身</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Community Feed */}
+        <section
+          onClick={() => onNavigate(AppScreen.COMMUNITY)}
+          className="cursor-pointer group"
+        >
+          <h2 className="text-slate-900 font-bold mb-3 flex items-center gap-2">
+            <ShoppingBag size={18} className="text-primary-500" />
+            消费者社区
+            <ChevronRight size={16} className="text-gray-300 group-hover:text-primary-500 transition-colors ml-auto" />
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2].map((i) => (
+              <div key={i} className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm pb-2 hover:shadow-md transition-shadow">
+                <div className="relative h-32 bg-gray-100">
+                  <img src={`https://picsum.photos/300/400?random=${i + 20}`} className="w-full h-full object-cover" alt="Community" />
+                  {i === 1 && <span className="absolute top-2 right-2 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full">热评</span>}
+                </div>
+                <div className="px-2 pt-2">
+                  <p className="text-xs font-bold text-slate-800 line-clamp-1">超真实的虚拟试衣体验！</p>
+                  <div className="flex justify-between items-center mt-2">
+                    <div className="flex items-center gap-1">
+                      <img src={`https://picsum.photos/50/50?random=${i + 50}`} className="w-4 h-4 rounded-full" alt="Avatar" />
+                      <span className="text-[10px] text-slate-500">User{i}</span>
+                    </div>
+                    <span className="text-[10px] text-slate-300">120 likes</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+      </main>
+    </div>
+  );
+};
+
+export default HomeScreen;
