@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, withTimeout, DEFAULT_TIMEOUT } from '../lib/supabase';
 
 export type TicketType = 'logistics' | 'damage' | 'quality' | 'other';
 export type TicketStatus = 'pending' | 'processing' | 'resolved' | 'closed';
@@ -36,20 +36,25 @@ export async function createTicket(data: {
     }
 
     try {
-        const { data: ticket, error } = await supabase
-            .from('support_tickets')
-            .insert({
-                user_id: data.userId,
-                type: data.type,
-                description: data.description || null,
-                evidence_urls: data.evidenceUrls || []
-            })
-            .select()
-            .single();
+        const { data: ticket, error } = await withTimeout(
+            supabase
+                .from('support_tickets')
+                .insert({
+                    user_id: data.userId,
+                    type: data.type,
+                    description: data.description || null,
+                    evidence_urls: data.evidenceUrls || []
+                })
+                .select()
+                .single(),
+            DEFAULT_TIMEOUT,
+            'Create support ticket'
+        );
 
         if (error || !ticket) return null;
         return ticket;
-    } catch {
+    } catch (err) {
+        console.error('[SupportService] Error creating ticket:', err);
         return null;
     }
 }
@@ -61,15 +66,20 @@ export async function getTickets(userId: string): Promise<SupportTicket[]> {
     }
 
     try {
-        const { data, error } = await supabase
-            .from('support_tickets')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
+        const { data, error } = await withTimeout(
+            supabase
+                .from('support_tickets')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false }),
+            DEFAULT_TIMEOUT,
+            'Get support tickets'
+        );
 
         if (error || !data) return [];
         return data;
-    } catch {
+    } catch (err) {
+        console.error('[SupportService] Error fetching tickets:', err);
         return [];
     }
 }
@@ -85,17 +95,22 @@ export async function updateTicket(
     }
 
     try {
-        const { error } = await supabase
-            .from('support_tickets')
-            .update({
-                ...updates,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', ticketId)
-            .eq('user_id', userId);
+        const { error } = await withTimeout(
+            supabase
+                .from('support_tickets')
+                .update({
+                    ...updates,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', ticketId)
+                .eq('user_id', userId),
+            DEFAULT_TIMEOUT,
+            'Update support ticket'
+        );
 
         return !error;
-    } catch {
+    } catch (err) {
+        console.error('[SupportService] Error updating ticket:', err);
         return false;
     }
 }
@@ -111,9 +126,13 @@ export async function uploadEvidence(userId: string, file: File): Promise<string
         const fileExt = file.name.split('.').pop();
         const fileName = `${userId}/${Date.now()}.${fileExt}`;
 
-        const { error } = await supabase.storage
-            .from('evidence')
-            .upload(fileName, file);
+        const { error } = await withTimeout(
+            supabase.storage
+                .from('evidence')
+                .upload(fileName, file),
+            30000, // Longer timeout for file uploads
+            'Upload evidence file'
+        );
 
         if (error) return null;
 
@@ -122,7 +141,8 @@ export async function uploadEvidence(userId: string, file: File): Promise<string
             .getPublicUrl(fileName);
 
         return publicUrl;
-    } catch {
+    } catch (err) {
+        console.error('[SupportService] Error uploading evidence:', err);
         return null;
     }
 }

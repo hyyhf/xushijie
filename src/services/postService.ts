@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, withTimeout, DEFAULT_TIMEOUT } from '../lib/supabase';
 
 export interface Post {
     id: string;
@@ -23,6 +23,10 @@ export interface Comment {
     created_at: string;
 }
 
+// Track ongoing requests to prevent duplicate fetches
+let activePostsRequest: Promise<Post[]> | null = null;
+let lastRequestKey: string = '';
+
 // Get posts with pagination
 export async function getPosts(options?: {
     tab?: 'recommend' | 'follow' | 'local';
@@ -35,30 +39,52 @@ export async function getPosts(options?: {
         return getMockPosts();
     }
 
+    // Create a request key to dedupe identical requests
+    const requestKey = JSON.stringify({ tab: options?.tab, limit: options?.limit, userId: options?.userId });
+
+    // If there's an active request with the same parameters, return that promise
+    if (activePostsRequest && lastRequestKey === requestKey) {
+        console.log('[PostService] Returning existing request promise');
+        return activePostsRequest;
+    }
+
+    // Create new request
+    lastRequestKey = requestKey;
+    activePostsRequest = fetchPosts(options);
+
+    try {
+        const result = await activePostsRequest;
+        return result;
+    } finally {
+        // Clear the active request after completion
+        activePostsRequest = null;
+    }
+}
+
+// Internal function that actually fetches posts
+async function fetchPosts(options?: {
+    tab?: 'recommend' | 'follow' | 'local';
+    limit?: number;
+    offset?: number;
+    userId?: string;
+}): Promise<Post[]> {
     try {
         console.log('[PostService] Fetching posts from Supabase...');
 
-        // Add timeout to the request (10 seconds)
-        const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
-            setTimeout(() => {
-                console.warn('[PostService] Request timed out after 10000ms');
-                resolve({ data: null, error: { message: 'Request timed out' } });
-            }, 10000)
+        const { data, error } = await withTimeout(
+            supabase!
+                .from('posts')
+                .select(`
+                    *,
+                    profiles!posts_user_id_fkey(username, avatar_url),
+                    post_likes(count),
+                    post_comments(count)
+                `)
+                .order('created_at', { ascending: false })
+                .limit(options?.limit || 20),
+            DEFAULT_TIMEOUT,
+            'Fetch posts'
         );
-
-        const fetchPromise = supabase
-            .from('posts')
-            .select(`
-        *,
-        profiles!posts_user_id_fkey(username, avatar_url),
-        post_likes(count),
-        post_comments(count)
-      `)
-            .order('created_at', { ascending: false })
-            .limit(options?.limit || 20);
-
-        const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
-        const { data, error } = result;
 
         if (error) {
             console.error('[PostService] Error fetching posts:', error.message);
@@ -72,20 +98,25 @@ export async function getPosts(options?: {
 
         console.log(`[PostService] Found ${data.length} posts`);
 
-        // Check if current user has liked each post
+        // Check if current user has liked each post (with timeout)
         let userLikes: Set<string> = new Set();
         if (options?.userId) {
             try {
-                const { data: likes } = await supabase
-                    .from('post_likes')
-                    .select('post_id')
-                    .eq('user_id', options.userId);
+                const { data: likes } = await withTimeout(
+                    supabase!
+                        .from('post_likes')
+                        .select('post_id')
+                        .eq('user_id', options.userId),
+                    5000, // Shorter timeout for likes check
+                    'Fetch user likes'
+                );
 
                 if (likes) {
                     userLikes = new Set(likes.map((l: any) => l.post_id));
                 }
-            } catch {
-                // Ignore likes error
+            } catch (likesErr) {
+                console.warn('[PostService] Failed to fetch user likes:', likesErr);
+                // Continue without like status - not critical
             }
         }
 
@@ -120,16 +151,20 @@ export async function createPost(data: {
     }
 
     try {
-        const { data: post, error } = await supabase
-            .from('posts')
-            .insert({
-                user_id: data.userId,
-                content: data.content,
-                image_url: data.imageUrl || null,
-                tags: data.tags || []
-            })
-            .select(`*, profiles!posts_user_id_fkey(username, avatar_url)`)
-            .single();
+        const { data: post, error } = await withTimeout(
+            supabase
+                .from('posts')
+                .insert({
+                    user_id: data.userId,
+                    content: data.content,
+                    image_url: data.imageUrl || null,
+                    tags: data.tags || []
+                })
+                .select(`*, profiles!posts_user_id_fkey(username, avatar_url)`)
+                .single(),
+            DEFAULT_TIMEOUT,
+            'Create post'
+        );
 
         if (error || !post) return null;
 
@@ -146,7 +181,8 @@ export async function createPost(data: {
             is_liked: false,
             created_at: post.created_at
         };
-    } catch {
+    } catch (err) {
+        console.error('[PostService] Error creating post:', err);
         return null;
     }
 }
@@ -158,12 +194,17 @@ export async function likePost(postId: string, userId: string): Promise<boolean>
     }
 
     try {
-        const { error } = await supabase
-            .from('post_likes')
-            .insert({ post_id: postId, user_id: userId });
+        const { error } = await withTimeout(
+            supabase
+                .from('post_likes')
+                .insert({ post_id: postId, user_id: userId }),
+            5000,
+            'Like post'
+        );
 
         return !error;
-    } catch {
+    } catch (err) {
+        console.error('[PostService] Error liking post:', err);
         return false;
     }
 }
@@ -175,14 +216,19 @@ export async function unlikePost(postId: string, userId: string): Promise<boolea
     }
 
     try {
-        const { error } = await supabase
-            .from('post_likes')
-            .delete()
-            .eq('post_id', postId)
-            .eq('user_id', userId);
+        const { error } = await withTimeout(
+            supabase
+                .from('post_likes')
+                .delete()
+                .eq('post_id', postId)
+                .eq('user_id', userId),
+            5000,
+            'Unlike post'
+        );
 
         return !error;
-    } catch {
+    } catch (err) {
+        console.error('[PostService] Error unliking post:', err);
         return false;
     }
 }
@@ -194,11 +240,15 @@ export async function getComments(postId: string): Promise<Comment[]> {
     }
 
     try {
-        const { data, error } = await supabase
-            .from('post_comments')
-            .select(`*, profiles!post_comments_user_id_fkey(username, avatar_url)`)
-            .eq('post_id', postId)
-            .order('created_at', { ascending: true });
+        const { data, error } = await withTimeout(
+            supabase
+                .from('post_comments')
+                .select(`*, profiles!post_comments_user_id_fkey(username, avatar_url)`)
+                .eq('post_id', postId)
+                .order('created_at', { ascending: true }),
+            DEFAULT_TIMEOUT,
+            'Get comments'
+        );
 
         if (error || !data) return [];
 
@@ -210,7 +260,8 @@ export async function getComments(postId: string): Promise<Comment[]> {
             content: c.content,
             created_at: c.created_at
         }));
-    } catch {
+    } catch (err) {
+        console.error('[PostService] Error fetching comments:', err);
         return [];
     }
 }
@@ -222,11 +273,15 @@ export async function addComment(postId: string, userId: string, content: string
     }
 
     try {
-        const { data, error } = await supabase
-            .from('post_comments')
-            .insert({ post_id: postId, user_id: userId, content })
-            .select(`*, profiles!post_comments_user_id_fkey(username, avatar_url)`)
-            .single();
+        const { data, error } = await withTimeout(
+            supabase
+                .from('post_comments')
+                .insert({ post_id: postId, user_id: userId, content })
+                .select(`*, profiles!post_comments_user_id_fkey(username, avatar_url)`)
+                .single(),
+            DEFAULT_TIMEOUT,
+            'Add comment'
+        );
 
         if (error || !data) return null;
 
@@ -238,7 +293,8 @@ export async function addComment(postId: string, userId: string, content: string
             content: data.content,
             created_at: data.created_at
         };
-    } catch {
+    } catch (err) {
+        console.error('[PostService] Error adding comment:', err);
         return null;
     }
 }

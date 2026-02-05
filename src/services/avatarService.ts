@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, withTimeout, DEFAULT_TIMEOUT } from '../lib/supabase';
 
 export interface AvatarConfig {
     id?: string;
@@ -20,15 +20,20 @@ export async function getAvatarConfig(userId: string): Promise<AvatarConfig | nu
     }
 
     try {
-        const { data, error } = await supabase
-            .from('avatar_configs')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
+        const { data, error } = await withTimeout(
+            supabase
+                .from('avatar_configs')
+                .select('*')
+                .eq('user_id', userId)
+                .single(),
+            DEFAULT_TIMEOUT,
+            'Get avatar config'
+        );
 
         if (error || !data) return getLocalAvatarConfig();
         return data;
-    } catch {
+    } catch (err) {
+        console.error('[AvatarService] Error fetching config:', err);
         return getLocalAvatarConfig();
     }
 }
@@ -41,22 +46,26 @@ export async function saveAvatarConfig(config: AvatarConfig): Promise<boolean> {
     }
 
     try {
-        const { error } = await supabase
-            .from('avatar_configs')
-            .upsert({
-                user_id: config.user_id,
-                seed: config.seed,
-                hair: config.hair,
-                face: config.face,
-                clothes: config.clothes,
-                makeup: config.makeup,
-                color: config.color,
-                voice_pitch: config.voice_pitch,
-                motion: config.motion,
-                updated_at: new Date().toISOString()
-            }, {
-                onConflict: 'user_id'
-            });
+        const { error } = await withTimeout(
+            supabase
+                .from('avatar_configs')
+                .upsert({
+                    user_id: config.user_id,
+                    seed: config.seed,
+                    hair: config.hair,
+                    face: config.face,
+                    clothes: config.clothes,
+                    makeup: config.makeup,
+                    color: config.color,
+                    voice_pitch: config.voice_pitch,
+                    motion: config.motion,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id'
+                }),
+            DEFAULT_TIMEOUT,
+            'Save avatar config'
+        );
 
         if (error) {
             console.error('Error saving avatar config:', error);
@@ -68,6 +77,8 @@ export async function saveAvatarConfig(config: AvatarConfig): Promise<boolean> {
         return true;
     } catch (err) {
         console.error('Error saving avatar config:', err);
+        // Try to save locally as fallback
+        saveLocalAvatarConfig(config);
         return false;
     }
 }

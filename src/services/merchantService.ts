@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, withTimeout, DEFAULT_TIMEOUT } from '../lib/supabase';
 
 export interface MerchantProfile {
     id: string;
@@ -27,15 +27,20 @@ export async function getMerchantProfile(userId: string): Promise<MerchantProfil
     }
 
     try {
-        const { data, error } = await supabase
-            .from('merchant_profiles')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
+        const { data, error } = await withTimeout(
+            supabase
+                .from('merchant_profiles')
+                .select('*')
+                .eq('user_id', userId)
+                .single(),
+            DEFAULT_TIMEOUT,
+            'Get merchant profile'
+        );
 
         if (error || !data) return getMockMerchantProfile(userId);
         return data;
-    } catch {
+    } catch (err) {
+        console.error('[MerchantService] Error fetching profile:', err);
         return getMockMerchantProfile(userId);
     }
 }
@@ -73,16 +78,21 @@ export async function updateMerchantProfile(
     }
 
     try {
-        const { error } = await supabase
-            .from('merchant_profiles')
-            .update({
-                ...updates,
-                updated_at: new Date().toISOString()
-            })
-            .eq('user_id', userId);
+        const { error } = await withTimeout(
+            supabase
+                .from('merchant_profiles')
+                .update({
+                    ...updates,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('user_id', userId),
+            DEFAULT_TIMEOUT,
+            'Update merchant profile'
+        );
 
         return !error;
-    } catch {
+    } catch (err) {
+        console.error('[MerchantService] Error updating profile:', err);
         return false;
     }
 }
@@ -94,21 +104,26 @@ export async function createMerchantProfile(userId: string, shopName: string): P
     }
 
     try {
-        const { data, error } = await supabase
-            .from('merchant_profiles')
-            .insert({
-                user_id: userId,
-                shop_name: shopName,
-                credit_score: 98.5,
-                deposit: 20000,
-                verified: false
-            })
-            .select()
-            .single();
+        const { data, error } = await withTimeout(
+            supabase
+                .from('merchant_profiles')
+                .insert({
+                    user_id: userId,
+                    shop_name: shopName,
+                    credit_score: 98.5,
+                    deposit: 20000,
+                    verified: false
+                })
+                .select()
+                .single(),
+            DEFAULT_TIMEOUT,
+            'Create merchant profile'
+        );
 
         if (error || !data) return null;
         return data;
-    } catch {
+    } catch (err) {
+        console.error('[MerchantService] Error creating profile:', err);
         return null;
     }
 }

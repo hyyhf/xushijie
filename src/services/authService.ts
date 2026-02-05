@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, withTimeout, DEFAULT_TIMEOUT } from '../lib/supabase';
 import { UserRole } from '../../types';
 
 export interface UserProfile {
@@ -28,6 +28,7 @@ function translateError(errorMessage: string): string {
         'Signup requires a valid password': '请输入有效的密码',
         'User not found': '用户不存在',
         'Network error': '网络连接失败，请检查网络',
+        'timed out': '请求超时，请检查网络连接',
     };
 
     for (const [key, value] of Object.entries(errorMap)) {
@@ -45,13 +46,17 @@ export async function signUp(email: string, password: string, role: UserRole = U
     }
 
     try {
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: { role }
-            }
-        });
+        const { data, error } = await withTimeout(
+            supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { role }
+                }
+            }),
+            DEFAULT_TIMEOUT,
+            'Sign up'
+        );
 
         if (error) {
             console.error('Sign up error:', error);
@@ -74,7 +79,8 @@ export async function signUp(email: string, password: string, role: UserRole = U
         return { success: false, error: '注册失败，请稍后重试' };
     } catch (err) {
         console.error('Sign up exception:', err);
-        return { success: false, error: '注册失败，请检查网络连接' };
+        const message = err instanceof Error ? err.message : '注册失败，请检查网络连接';
+        return { success: false, error: translateError(message) };
     }
 }
 
@@ -85,10 +91,14 @@ export async function signIn(email: string, password: string): Promise<AuthResul
     }
 
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password
-        });
+        const { data, error } = await withTimeout(
+            supabase.auth.signInWithPassword({
+                email,
+                password
+            }),
+            DEFAULT_TIMEOUT,
+            'Sign in'
+        );
 
         if (error) {
             console.error('Sign in error:', error);
@@ -96,7 +106,14 @@ export async function signIn(email: string, password: string): Promise<AuthResul
         }
 
         if (data.user) {
-            const profile = await getUserProfile(data.user.id);
+            // Get profile with timeout, but don't block login if it fails
+            let profile: UserProfile | null = null;
+            try {
+                profile = await getUserProfile(data.user.id);
+            } catch (profileErr) {
+                console.warn('Failed to fetch profile during login, using default:', profileErr);
+            }
+
             return {
                 success: true,
                 user: profile || {
@@ -112,7 +129,8 @@ export async function signIn(email: string, password: string): Promise<AuthResul
         return { success: false, error: '登录失败，请稍后重试' };
     } catch (err) {
         console.error('Sign in exception:', err);
-        return { success: false, error: '登录失败，请检查网络连接' };
+        const message = err instanceof Error ? err.message : '登录失败，请检查网络连接';
+        return { success: false, error: translateError(message) };
     }
 }
 
@@ -121,7 +139,12 @@ export async function signOut(): Promise<void> {
     if (!isSupabaseConfigured || !supabase) {
         return;
     }
-    await supabase.auth.signOut();
+    try {
+        await withTimeout(supabase.auth.signOut(), 5000, 'Sign out');
+    } catch (err) {
+        console.error('Sign out error:', err);
+        // Still clear local state even if API call fails
+    }
 }
 
 // Get current user
@@ -131,7 +154,11 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
     }
 
     try {
-        const { data: { user }, error } = await supabase.auth.getUser();
+        const { data: { user }, error } = await withTimeout(
+            supabase.auth.getUser(),
+            5000, // Shorter timeout for initial user check
+            'Get current user'
+        );
 
         if (error) {
             console.error('Error fetching auth user:', error);
@@ -154,11 +181,15 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     }
 
     try {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
+        const { data, error } = await withTimeout(
+            supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single(),
+            DEFAULT_TIMEOUT,
+            'Get user profile'
+        );
 
         if (error) {
             console.error('Error fetching user profile:', error);
@@ -186,16 +217,53 @@ export function onAuthStateChange(callback: (user: UserProfile | null) => void):
         return undefined;
     }
 
+    // Track pending profile fetch to prevent overlapping requests
+    let pendingProfileFetch: Promise<UserProfile | null> | null = null;
+    let isUnsubscribed = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth state change event:', event);
+
+        if (isUnsubscribed) return;
+
         if (session?.user) {
-            const profile = await getUserProfile(session.user.id);
-            callback(profile);
+            // Cancel any pending profile fetch
+            if (pendingProfileFetch) {
+                console.log('Cancelling previous profile fetch');
+            }
+
+            // Fetch profile with timeout protection
+            pendingProfileFetch = getUserProfile(session.user.id);
+
+            try {
+                const profile = await pendingProfileFetch;
+                if (!isUnsubscribed) {
+                    callback(profile);
+                }
+            } catch (err) {
+                console.error('Error fetching profile in auth state change:', err);
+                // Still notify with basic user info
+                if (!isUnsubscribed) {
+                    callback({
+                        id: session.user.id,
+                        role: UserRole.CONSUMER,
+                        username: session.user.email || null,
+                        phone: null,
+                        avatar_url: null
+                    });
+                }
+            } finally {
+                pendingProfileFetch = null;
+            }
         } else {
             callback(null);
         }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+        isUnsubscribed = true;
+        subscription.unsubscribe();
+    };
 }
 
 // Mock functions for development without Supabase
