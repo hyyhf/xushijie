@@ -117,8 +117,6 @@ cd virtual-horizon
 
 ```bash
 npm install
-# 或者
-yarn install
 ```
 
 ### 3. 配置环境变量
