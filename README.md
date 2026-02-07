@@ -89,7 +89,7 @@
     </td>
     <td align="center" width="200">
       <img src="https://d3js.org/logo.svg" width="48" height="48" alt="Recharts" /><br>
-      <b>Recharts</b>
+      <b>D3.js</b>
     </td>
     <td align="center" width="200">
       <img src="https://lucide.dev/logo.svg" width="48" height="48" alt="Lucide" /><br>
