@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings, Camera, Heart, MessageCircle, Grid3X3, Bookmark, LogOut, Edit2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Settings, Camera, Heart, ShoppingBag, Grid3X3, Bookmark, LogOut, Edit2, ChevronRight } from 'lucide-react';
 import { AppScreen } from '../types';
 import { useUser } from '../src/lib/userContext';
 import { getPosts, Post } from '../src/services/postService';
 import { signOut } from '../src/services/authService';
 
 interface ProfileScreenProps {
-    onNavigate: (screen: AppScreen) => void;
+    onNavigate: (screen: AppScreen, data?: any) => void;
     onLogout: () => void;
 }
 
@@ -199,12 +199,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate, onLogout }) =
 
             {/* Menu Items */}
             <div className="px-4 mt-4 space-y-2">
-                <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
+                <button onClick={() => onNavigate(AppScreen.ORDER_LIST)} className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <MessageCircle className="text-blue-500" size={20} />
+                            <ShoppingBag className="text-blue-500" size={20} />
                         </div>
-                        <span className="font-medium text-slate-700">我的消息</span>
+                        <span className="font-medium text-slate-700">我的订单</span>
                     </div>
                     <ChevronRight className="text-slate-400" size={20} />
                 </button>

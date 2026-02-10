@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, Filter, ShoppingCart, Heart, Star, ChevronDown, Loader2 } from 'lucide-react';
 import { AppScreen } from '../types';
 import { getProducts, getCategories, Product, Category } from '../src/services/productService';
+import { getCartCount } from '../src/services/cartService';
 
 interface HotProductsScreenProps {
-  onNavigate: (screen: AppScreen) => void;
+  onNavigate: (screen: AppScreen, data?: any) => void;
 }
 
 const HotProductsScreen: React.FC<HotProductsScreenProps> = ({ onNavigate }) => {
@@ -15,6 +16,7 @@ const HotProductsScreen: React.FC<HotProductsScreenProps> = ({ onNavigate }) => 
   const [sortBy, setSortBy] = useState<'sales' | 'price' | 'rating'>('sales');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState('');
+  const [cartCount, setCartCount] = useState(0);
 
   // Load categories and products
   useEffect(() => {
@@ -27,6 +29,9 @@ const HotProductsScreen: React.FC<HotProductsScreenProps> = ({ onNavigate }) => 
       setCategories(cats);
       setProducts(prods);
       setIsLoading(false);
+      // Load cart count
+      const count = await getCartCount();
+      setCartCount(count);
     };
     loadData();
   }, []);
@@ -85,7 +90,12 @@ const HotProductsScreen: React.FC<HotProductsScreenProps> = ({ onNavigate }) => 
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <button className="text-slate-600"><ShoppingCart size={22} /></button>
+          <button className="text-slate-600 relative" onClick={() => onNavigate(AppScreen.CART)}>
+            <ShoppingCart size={22} />
+            {cartCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">{cartCount > 99 ? '99+' : cartCount}</span>
+            )}
+          </button>
         </div>
 
         {/* Categories */}
@@ -137,7 +147,11 @@ const HotProductsScreen: React.FC<HotProductsScreenProps> = ({ onNavigate }) => 
       ) : (
         <main className="p-3 grid grid-cols-2 gap-3">
           {filteredProducts.map((product) => (
-            <div key={product.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group">
+            <button
+              key={product.id}
+              onClick={() => onNavigate(AppScreen.PRODUCT_DETAIL, { productId: product.id })}
+              className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group text-left"
+            >
               <div className="relative aspect-square bg-gray-200">
                 <img src={product.image_url} className="w-full h-full object-cover" alt={product.title} />
                 {product.tag && (
@@ -151,7 +165,7 @@ const HotProductsScreen: React.FC<HotProductsScreenProps> = ({ onNavigate }) => 
 
                 <div className="flex items-center gap-1 mt-1.5 mb-2">
                   <Star size={10} className="text-orange-400 fill-current" />
-                  <span className="text-[10px] text-slate-400 font-medium">{product.rating} · 已售 {product.sales}+</span>
+                  <span className="text-[10px] text-slate-400 font-medium">{product.rating} . 已售 {product.sales}+</span>
                 </div>
 
                 <div className="flex items-end justify-between">
@@ -159,12 +173,12 @@ const HotProductsScreen: React.FC<HotProductsScreenProps> = ({ onNavigate }) => 
                     <span className="text-xs font-bold">¥</span>
                     <span className="text-lg font-bold font-sans">{product.price}</span>
                   </div>
-                  <button className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center text-slate-400 hover:text-red-500 active:scale-90 transition-all">
+                  <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center text-slate-400 hover:text-red-500 active:scale-90 transition-all">
                     <Heart size={14} />
-                  </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </main>
       )}

@@ -10,6 +10,12 @@ import CommunityScreen from './pages/CommunityScreen';
 import LiveStreamScreen from './pages/LiveStreamScreen';
 import ProfileScreen from './pages/ProfileScreen';
 import LiveRoomCustomizeScreen from './pages/LiveRoomCustomizeScreen';
+import ProductDetailScreen from './pages/ProductDetailScreen';
+import CartScreen from './pages/CartScreen';
+import CheckoutScreen from './pages/CheckoutScreen';
+import PaymentScreen from './pages/PaymentScreen';
+import OrderListScreen from './pages/OrderListScreen';
+import OrderDetailScreen from './pages/OrderDetailScreen';
 import BottomNav from './components/BottomNav';
 import { UserProfile, getCurrentUser, onAuthStateChange, signOut } from './src/services/authService';
 import { UserContext } from './src/lib/userContext';
@@ -19,6 +25,15 @@ export default function App() {
   const [userRole, setUserRole] = useState<UserRole>(UserRole.GUEST);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Shopping navigation data
+  const [navData, setNavData] = useState<any>(null);
+
+  // Navigation helper that supports passing data
+  const handleNavigate = (screen: AppScreen, data?: any) => {
+    setNavData(data || null);
+    setCurrentScreen(screen);
+  };
 
   // Check for existing session on app load
   useEffect(() => {
@@ -98,11 +113,11 @@ export default function App() {
       case AppScreen.LOGIN:
         return <LoginScreen onLogin={handleLogin} />;
       case AppScreen.HOME:
-        return <HomeScreen onNavigate={setCurrentScreen} />;
+        return <HomeScreen onNavigate={handleNavigate} />;
       case AppScreen.HOT_PRODUCTS:
-        return <HotProductsScreen onNavigate={setCurrentScreen} />;
+        return <HotProductsScreen onNavigate={handleNavigate} />;
       case AppScreen.COMMUNITY:
-        return <CommunityScreen onNavigate={setCurrentScreen} />;
+        return <CommunityScreen onNavigate={handleNavigate} />;
       case AppScreen.LIVE_STREAM:
         return <LiveStreamScreen onClose={() => setCurrentScreen(AppScreen.HOME)} />;
       case AppScreen.AVATAR:
@@ -112,15 +127,38 @@ export default function App() {
       case AppScreen.SUPPORT:
         return <SupportScreen />;
       case AppScreen.PROFILE:
-        return <ProfileScreen onNavigate={setCurrentScreen} onLogout={handleLogout} />;
+        return <ProfileScreen onNavigate={handleNavigate} onLogout={handleLogout} />;
       case AppScreen.LIVE_ROOM_CUSTOMIZE:
-        return <LiveRoomCustomizeScreen onNavigate={setCurrentScreen} />;
+        return <LiveRoomCustomizeScreen onNavigate={handleNavigate} />;
+
+      // Shopping screens
+      case AppScreen.PRODUCT_DETAIL:
+        return <ProductDetailScreen productId={navData?.productId || ''} onNavigate={handleNavigate} />;
+      case AppScreen.CART:
+        return <CartScreen onNavigate={handleNavigate} />;
+      case AppScreen.CHECKOUT:
+        return <CheckoutScreen checkoutItems={navData?.items || []} onNavigate={handleNavigate} />;
+      case AppScreen.PAYMENT:
+        return <PaymentScreen orderId={navData?.orderId || ''} total={navData?.total || 0} payMethod={navData?.payMethod || 'alipay'} onNavigate={handleNavigate} />;
+      case AppScreen.ORDER_LIST:
+        return <OrderListScreen onNavigate={handleNavigate} />;
+      case AppScreen.ORDER_DETAIL:
+        return <OrderDetailScreen orderId={navData?.orderId || ''} onNavigate={handleNavigate} />;
+
       default:
         return <LoginScreen onLogin={handleLogin} />;
     }
   };
 
-  const showNav = currentScreen !== AppScreen.LOGIN && currentScreen !== AppScreen.LIVE_STREAM;
+  const hideNav = currentScreen === AppScreen.LOGIN
+    || currentScreen === AppScreen.LIVE_STREAM
+    || currentScreen === AppScreen.PRODUCT_DETAIL
+    || currentScreen === AppScreen.CART
+    || currentScreen === AppScreen.CHECKOUT
+    || currentScreen === AppScreen.PAYMENT
+    || currentScreen === AppScreen.ORDER_LIST
+    || currentScreen === AppScreen.ORDER_DETAIL;
+  const showNav = !hideNav;
 
   // Show loading state
   if (isLoading) {

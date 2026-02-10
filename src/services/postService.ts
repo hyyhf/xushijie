@@ -124,7 +124,7 @@ async function fetchPosts(options?: {
             id: post.id,
             user_id: post.user_id,
             username: post.profiles?.username || 'User',
-            avatar_url: post.profiles?.avatar_url || `https://picsum.photos/50/50?random=${post.id}`,
+            avatar_url: post.profiles?.avatar_url || `https://api.dicebear.com/9.x/adventurer/svg?seed=${post.id}&backgroundColor=b6e3f4`,
             content: post.content,
             image_url: post.image_url,
             tags: post.tags || [],
@@ -300,19 +300,55 @@ export async function addComment(postId: string, userId: string, content: string
 }
 
 // Mock data
+const MOCK_POSTS_DATA = [
+    {
+        username: '时尚达人Mia',
+        avatar_seed: 'Mia',
+        content: '今天的虚拟试穿效果太惊艳了！这件大衣上身超显瘦，完全看不出是AI生成的，衣服质感无敌！',
+        image_url: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=500&fit=crop',
+        tags: ['#虚拟试穿', '#好物推荐', '#OOTD'],
+    },
+    {
+        username: '美妆控Luna',
+        avatar_seed: 'Luna',
+        content: '新入手的这款MAC口红316色号，在虚拟直播间看着不错，实物更美！集美们冲鸭！',
+        image_url: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=400&h=500&fit=crop',
+        tags: ['#美妆', '#口红推荐', '#种草'],
+    },
+    {
+        username: '职场丽人Ella',
+        avatar_seed: 'Ella',
+        content: '虚拟主播的穿搭分享来啦！这套西装外套真的超有气场，职场小白必备，质量超越预期！',
+        image_url: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop',
+        tags: ['#职场穿搭', '#西装', '#显瘦'],
+    },
+    {
+        username: '居家达人Kevin',
+        avatar_seed: 'Kevin',
+        content: '周末居家必备好物分享！这款北欧风香薰蜡烛氛围感拉满，拍照超出片，客厅瞬间高级起来！',
+        image_url: 'https://images.unsplash.com/photo-1602607688066-6a824b79be3f?w=400&h=500&fit=crop',
+        tags: ['#家居', '#好物分享', '#氛围感'],
+    },
+    {
+        username: '数码测评Leo',
+        avatar_seed: 'Leo',
+        content: '终于收到心心念念的Sony降噪耳机了！降噪效果一流，通勤神器，音质也很棒，性价比之王！',
+        image_url: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=400&h=500&fit=crop',
+        tags: ['#数码', '#耳机测评', '#好物'],
+    }
+];
+
 function getMockPosts(): Post[] {
-    return Array.from({ length: 5 }).map((_, i) => ({
+    return MOCK_POSTS_DATA.map((post, i) => ({
         id: `mock-post-${i}`,
         user_id: `mock-user-${i}`,
-        username: `User_${i + 100}`,
-        avatar_url: `https://picsum.photos/50/50?random=${i + 200}`,
-        content: i % 2 === 0
-            ? '今天的虚拟试穿效果太惊艳了！完全看不出是AI生成的，衣服质感无敌👍'
-            : '新入手的这款口红，在虚拟直播间看着不错，实物更美！集美们冲鸭！',
-        image_url: `https://picsum.photos/400/500?random=${i + 300}`,
-        tags: ['#虚拟试穿', '#好物推荐', '#OOTD'],
-        likes_count: 100 + i * 15,
-        comments_count: 20 + i,
+        username: post.username,
+        avatar_url: `https://api.dicebear.com/9.x/adventurer/svg?seed=${post.avatar_seed}&backgroundColor=b6e3f4`,
+        content: post.content,
+        image_url: post.image_url,
+        tags: post.tags,
+        likes_count: 100 + i * 50,
+        comments_count: 20 + i * 5,
         is_liked: false,
         created_at: new Date().toISOString()
     }));

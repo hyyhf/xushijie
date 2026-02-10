@@ -13,18 +13,63 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     {
       id: 1,
       title: "职场穿搭专场",
-      subtitle: "高级感西装",
+      subtitle: "高级感西装外套",
       rank: 1,
-      image: "https://picsum.photos/400/300?random=1",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop",
       videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4"
     },
     {
       id: 2,
       title: "美妆护肤精选",
-      subtitle: "敏感肌修护",
+      subtitle: "敏感肌修护套装",
       rank: 2,
-      image: "https://picsum.photos/400/300?random=2",
+      image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=500&fit=crop",
       videoUrl: "https://www.w3schools.com/html/movie.mp4"
+    }
+  ];
+
+  const hotProducts = [
+    {
+      id: 1,
+      name: 'MAC 哑光唇膏 #316',
+      tag: '热销',
+      sales: '2380+',
+      image: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=100&h=100&fit=crop'
+    },
+    {
+      id: 2,
+      name: '兰蔻小黑瓶面部精华',
+      tag: '爆款',
+      sales: '1890+',
+      image: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=100&h=100&fit=crop'
+    },
+    {
+      id: 3,
+      name: '修身西装外套 黑色',
+      tag: '新品',
+      sales: '1200+',
+      image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=100&h=100&fit=crop'
+    }
+  ];
+
+  const communityPosts = [
+    {
+      id: 1,
+      title: '虚拟主播上身试穿效果太赞了！',
+      image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=300&h=400&fit=crop',
+      avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Mia&backgroundColor=b6e3f4',
+      user: '小仙女Mia',
+      likes: 328,
+      hot: true
+    },
+    {
+      id: 2,
+      title: '分享我的日常护肤步骤',
+      image: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=300&h=400&fit=crop',
+      avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Leo&backgroundColor=ffd5dc',
+      user: '护肤达人Leo',
+      likes: 215,
+      hot: false
     }
   ];
 
@@ -149,14 +194,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
             </div>
 
             <div className="flex gap-3 overflow-x-auto no-scrollbar pointer-events-none">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex-shrink-0 flex items-center gap-3 w-48 bg-white p-2.5 rounded-xl border border-gray-100 shadow-sm">
-                  <img src={`https://picsum.photos/100/100?random=${i + 10}`} className="w-12 h-12 rounded-lg object-cover" alt="Product" />
+              {hotProducts.map((product) => (
+                <div key={product.id} className="flex-shrink-0 flex items-center gap-3 w-48 bg-white p-2.5 rounded-xl border border-gray-100 shadow-sm">
+                  <img src={product.image} className="w-12 h-12 rounded-lg object-cover" alt={product.name} />
                   <div className="flex flex-col justify-center">
-                    <span className="text-xs font-bold text-slate-800 truncate w-24">主播同款口红</span>
+                    <span className="text-xs font-bold text-slate-800 truncate w-24">{product.name}</span>
                     <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-[10px] text-orange-500 bg-orange-50 px-1 rounded">热销</span>
-                      <span className="text-[10px] text-slate-400">999+</span>
+                      <span className="text-[10px] text-orange-500 bg-orange-50 px-1 rounded">{product.tag}</span>
+                      <span className="text-[10px] text-slate-400">{product.sales}</span>
                     </div>
                   </div>
                 </div>
@@ -168,7 +213,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
         {/* Interactive Zone */}
         <section className="grid grid-cols-2 gap-3">
           <div
-            onClick={() => onNavigate(AppScreen.AVATAR)} // Optional: Reuse for avatar
+            onClick={() => onNavigate(AppScreen.AVATAR)}
             className="bg-white p-4 rounded-2xl shadow-card border border-gray-100 relative overflow-hidden active:scale-[0.98] transition-transform cursor-pointer"
           >
             <div className="absolute right-0 top-0 w-20 h-20 bg-blue-50 rounded-full -mr-6 -mt-6"></div>
@@ -206,20 +251,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
             <ChevronRight size={16} className="text-gray-300 group-hover:text-primary-500 transition-colors ml-auto" />
           </h2>
           <div className="grid grid-cols-2 gap-3">
-            {[1, 2].map((i) => (
-              <div key={i} className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm pb-2 hover:shadow-md transition-shadow">
+            {communityPosts.map((post) => (
+              <div key={post.id} className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm pb-2 hover:shadow-md transition-shadow">
                 <div className="relative h-32 bg-gray-100">
-                  <img src={`https://picsum.photos/300/400?random=${i + 20}`} className="w-full h-full object-cover" alt="Community" />
-                  {i === 1 && <span className="absolute top-2 right-2 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full">热评</span>}
+                  <img src={post.image} className="w-full h-full object-cover" alt={post.title} />
+                  {post.hot && <span className="absolute top-2 right-2 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full">热评</span>}
                 </div>
                 <div className="px-2 pt-2">
-                  <p className="text-xs font-bold text-slate-800 line-clamp-1">超真实的虚拟试衣体验！</p>
+                  <p className="text-xs font-bold text-slate-800 line-clamp-1">{post.title}</p>
                   <div className="flex justify-between items-center mt-2">
                     <div className="flex items-center gap-1">
-                      <img src={`https://picsum.photos/50/50?random=${i + 50}`} className="w-4 h-4 rounded-full" alt="Avatar" />
-                      <span className="text-[10px] text-slate-500">User{i}</span>
+                      <img src={post.avatar} className="w-4 h-4 rounded-full" alt={post.user} />
+                      <span className="text-[10px] text-slate-500">{post.user}</span>
                     </div>
-                    <span className="text-[10px] text-slate-300">120 likes</span>
+                    <span className="text-[10px] text-slate-300">{post.likes} likes</span>
                   </div>
                 </div>
               </div>

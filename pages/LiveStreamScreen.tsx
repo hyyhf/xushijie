@@ -1,22 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Heart, MessageCircle, Share2, Gift, Send, MoreHorizontal, Gamepad2, Zap, Trophy, Mic, Wand2, ThumbsUp, Rocket, Gem, Car, Crown, Coffee, Signpost, Sparkles } from 'lucide-react';
 import { getLiveRoomConfig, LiveRoomConfig } from './LiveRoomCustomizeScreen';
+import {
+   getAvatarConfig,
+   getDefaultAvatarConfig,
+   SCENE_PRESETS,
+   CHARACTER_MODELS,
+   AvatarConfig,
+   AVATAR_STYLES
+} from '../src/services/avatarService';
 
 interface LiveStreamScreenProps {
    onClose: () => void;
 }
 
-// 主题预设背景
-const themeBackgrounds: Record<string, string> = {
-   'elegant': 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-   'fresh': 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)',
-   'romantic': 'linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%)',
-   'tech': 'linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%)',
-   'luxury': 'linear-gradient(135deg, #1c1c1c 0%, #2d2d2d 100%)',
-   'vivid': 'linear-gradient(135deg, #ff5722 0%, #ff9800 100%)',
-};
-
-// 特效选项 (与定制页面保持一致)
+// Scene effect options (kept for compatibility)
 const effectOptions = [
    { id: 'sparkles', name: '闪光', icon: '✨', color: '#FFD700' },
    { id: 'hearts', name: '爱心', icon: '💕', color: '#ff6b81' },
@@ -26,7 +24,7 @@ const effectOptions = [
    { id: 'fire', name: '火焰', icon: '🔥', color: '#ff7675' },
 ];
 
-// 粒子组件
+// Particle system
 const ParticleSystem = ({ type }: { type: string }) => {
    const [particles, setParticles] = useState<{ id: number; left: number; delay: number; scale: number }[]>([]);
 
@@ -39,7 +37,7 @@ const ParticleSystem = ({ type }: { type: string }) => {
                delay: 0,
                scale: 0.5 + Math.random() * 0.5
             };
-            return [...prev.slice(-15), newParticle]; // Keep max 15 particles
+            return [...prev.slice(-15), newParticle];
          });
       }, 800);
       return () => clearInterval(interval);
@@ -59,7 +57,7 @@ const ParticleSystem = ({ type }: { type: string }) => {
                style={{
                   left: `${p.left}%`,
                   fontSize: `${p.scale}rem`,
-                  animationDuration: '4s', // 稍慢一点，更适合直播背景
+                  animationDuration: '4s',
                   animationTimingFunction: 'ease-out'
                }}
             >
@@ -81,36 +79,40 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
    const [inputValue, setInputValue] = useState('');
    const messagesEndRef = useRef<HTMLDivElement>(null);
 
-   // 加载直播间配置
    const [config, setConfig] = useState<LiveRoomConfig | null>(null);
+   const [avatarConfig, setAvatarConfig] = useState<AvatarConfig | null>(null);
    const [showCouponPopup, setShowCouponPopup] = useState(false);
 
    useEffect(() => {
       const savedConfig = getLiveRoomConfig();
       setConfig(savedConfig);
 
-      // 如果开启了自动发放优惠券，显示优惠券弹窗
+      // Load avatar config
+      const loadAvatar = async () => {
+         const av = await getAvatarConfig('guest');
+         setAvatarConfig(av || getDefaultAvatarConfig('guest'));
+      };
+      loadAvatar();
+
       if (savedConfig.couponEnabled && savedConfig.couponAutoSend) {
          setTimeout(() => setShowCouponPopup(true), 1500);
       }
    }, []);
 
-   // Auto-scroll to bottom of chat
    useEffect(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
    }, [comments]);
 
-   // Simulate incoming comments
    useEffect(() => {
       const timer = setInterval(() => {
          const newComments = [
             { user: '路人甲', text: '这个颜色好看！' },
             { user: 'VIP_User', text: '还有库存吗？' },
-            { user: '西瓜皮', text: '主播身材真好' },
-            { user: 'System', text: '用户 "Tom" 送出了 🏎️ 跑车' }
+            { user: '西瓜皮', text: '主播好棒' },
+            { user: 'System', text: '用户 "Tom" 送出了跑车' }
          ];
          const randomComment = newComments[Math.floor(Math.random() * newComments.length)];
-         setComments(prev => [...prev.slice(-10), randomComment]); // Keep last 10
+         setComments(prev => [...prev.slice(-10), randomComment]);
       }, 3000);
       return () => clearInterval(timer);
    }, []);
@@ -126,6 +128,37 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
       setLikes(prev => prev + 1);
    };
 
+   // Get avatar display URL
+   const getAvatarDisplayUrl = () => {
+      if (!avatarConfig) return 'https://api.dicebear.com/9.x/micah/svg?seed=Natsumi&backgroundColor=transparent';
+
+      if (avatarConfig.characterId) {
+         const char = CHARACTER_MODELS.find(c => c.id === avatarConfig.characterId);
+         if (char) return char.thumbnailUrl;
+      }
+
+      const style = avatarConfig.style || 'micah';
+      return `https://api.dicebear.com/9.x/${style}/svg?seed=${avatarConfig.seed}&backgroundColor=transparent`;
+   };
+
+   // Get scene background
+   const getSceneBackground = () => {
+      if (!avatarConfig?.scene) return null;
+      return SCENE_PRESETS.find(s => s.id === avatarConfig.scene);
+   };
+
+   // Get glow color from character or default
+   const getGlowColor = () => {
+      if (avatarConfig?.characterId) {
+         const char = CHARACTER_MODELS.find(c => c.id === avatarConfig.characterId);
+         if (char) return char.glowColor;
+      }
+      return config?.accentColor || '#a855f7';
+   };
+
+   const scene = getSceneBackground();
+   const accentColor = config?.accentColor || getGlowColor();
+
    // Support Items Data
    const supportItems = [
       { name: '荧光棒', icon: Wand2, color: 'text-yellow-500' },
@@ -140,11 +173,19 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
       { name: '礼盒', icon: Gift, color: 'text-pink-500' },
    ];
 
-   // 获取背景样式
+   // Background style - prioritize user's avatar scene
    const getBackgroundStyle = (): React.CSSProperties => {
-      if (!config) return { backgroundColor: '#1a1a2e' };
+      // First priority: user's avatar scene
+      if (scene) {
+         return {
+            backgroundImage: `url(${scene.backgroundUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+         };
+      }
 
-      if (config.backgroundImage) {
+      // Second priority: live room custom config
+      if (config?.backgroundImage) {
          return {
             backgroundImage: `url(${config.backgroundImage})`,
             backgroundSize: 'cover',
@@ -152,33 +193,60 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
          };
       }
 
+      // Fallback: gradient
       return {
-         background: themeBackgrounds[config.theme] || config.backgroundColor
+         background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)'
       };
+   };
+
+   const getOverlayGradient = () => {
+      if (scene) return scene.overlayGradient;
+      return 'linear-gradient(135deg, rgba(139,0,255,0.3) 0%, rgba(255,0,128,0.2) 100%)';
    };
 
    return (
       <div className="absolute inset-0 bg-black z-50 flex flex-col font-sans overflow-hidden">
-         {/* Background Layer - 使用定制的背景 */}
+         {/* Background Layer - User's scene */}
          <div className="absolute inset-0 z-0" style={getBackgroundStyle()}>
-            {/* Video overlay or solid background */}
-            <video
-               className="w-full h-full object-cover opacity-50"
-               src="https://www.w3schools.com/html/mov_bbb.mp4"
-               autoPlay
-               loop
-               muted
-               playsInline
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 pointer-events-none"></div>
+            <div className="absolute inset-0" style={{ background: getOverlayGradient() }} />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 pointer-events-none" />
          </div>
 
-         {/* 特效层 - 使用新的 ParticleSystem */}
+         {/* Effects layer */}
          {config?.specialEffects.map(effectId => (
             <ParticleSystem key={effectId} type={effectId} />
          ))}
 
-         {/* 优惠券弹窗 */}
+         {/* Virtual Avatar - center of screen */}
+         <div className="absolute inset-0 z-[5] flex items-center justify-center pointer-events-none">
+            <div className="relative animate-avatar-float">
+               {/* Glow behind avatar */}
+               <div
+                  className="absolute inset-0 rounded-full blur-3xl opacity-20 scale-150"
+                  style={{ backgroundColor: getGlowColor() }}
+               />
+               <img
+                  src={getAvatarDisplayUrl()}
+                  alt="Virtual Host"
+                  className="relative w-48 h-48 object-contain drop-shadow-2xl"
+                  style={{
+                     filter: `drop-shadow(0 0 30px ${getGlowColor()}55)`
+                  }}
+               />
+               {/* Name tag */}
+               <div
+                  className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-white text-[10px] font-bold whitespace-nowrap backdrop-blur-md border border-white/10"
+                  style={{ backgroundColor: `${getGlowColor()}88` }}
+               >
+                  {avatarConfig?.characterId
+                     ? CHARACTER_MODELS.find(c => c.id === avatarConfig.characterId)?.name || '虚拟主播'
+                     : '虚拟主播'
+                  }
+               </div>
+            </div>
+         </div>
+
+         {/* Coupon popup */}
          {showCouponPopup && config?.couponEnabled && (
             <div className="absolute inset-0 z-50 flex items-center justify-center animate-in fade-in">
                <div className="absolute inset-0 bg-black/50" onClick={() => setShowCouponPopup(false)} />
@@ -193,7 +261,7 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
                      <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Gift size={32} className="text-white" />
                      </div>
-                     <h3 className="text-white text-xl font-bold mb-2">🎉 恭喜获得专属优惠券！</h3>
+                     <h3 className="text-white text-xl font-bold mb-2">恭喜获得专属优惠券！</h3>
                      <div className="bg-white rounded-2xl p-4 mt-4">
                         <div className="text-4xl font-black text-red-500 mb-1">
                            ¥{config.couponAmount}
@@ -213,13 +281,13 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
 
          {/* Top Controls */}
          <div className="relative z-10 pt-4 px-4 flex justify-between items-start">
-            {/* Host Info - 使用定制的主播名称 */}
+            {/* Host Info */}
             <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md rounded-full p-1 pr-4 border border-white/10">
-               <div className="w-9 h-9 rounded-full bg-white p-0.5 relative">
-                  <img src="https://api.dicebear.com/9.x/adventurer/svg?seed=Abby" className="w-full h-full rounded-full bg-orange-100" alt="Host" />
+               <div className="w-9 h-9 rounded-full bg-white p-0.5 relative overflow-hidden">
+                  <img src={getAvatarDisplayUrl()} className="w-full h-full rounded-full object-contain bg-gradient-to-br from-purple-100 to-blue-100" alt="Host" />
                   <div
                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-white text-[8px] px-1 rounded-sm font-bold"
-                     style={{ backgroundColor: config?.accentColor || '#ff6b35' }}
+                     style={{ backgroundColor: accentColor }}
                   >
                      LIVE
                   </div>
@@ -230,7 +298,7 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
                </div>
                <button
                   className="ml-2 text-white text-xs font-bold px-3 py-1 rounded-full"
-                  style={{ backgroundColor: config?.accentColor || '#ff6b35' }}
+                  style={{ backgroundColor: accentColor }}
                >
                   关注
                </button>
@@ -239,8 +307,8 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
             {/* Close Button */}
             <div className="flex items-center gap-4">
                <div className="flex -space-x-2 overflow-hidden">
-                  {[1, 2, 3].map(i => (
-                     <img key={i} src={`https://picsum.photos/30?random=${i}`} className="w-8 h-8 rounded-full border border-white/20" alt="Viewer" />
+                  {['Felix', 'Luna', 'Max'].map((name, i) => (
+                     <img key={i} src={`https://api.dicebear.com/9.x/adventurer/svg?seed=${name}&backgroundColor=b6e3f4`} className="w-8 h-8 rounded-full border border-white/20" alt="Viewer" />
                   ))}
                </div>
                <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center text-white/80 backdrop-blur-sm">
@@ -282,11 +350,11 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
 
          {/* Bottom Area */}
          <div className="mt-auto relative z-10 px-4 pb-4">
-            {/* Welcome message - 使用定制的欢迎语 */}
+            {/* Welcome + chat */}
             <div className="h-48 w-3/4 overflow-y-auto no-scrollbar mask-image-gradient mb-4 space-y-2">
                <div
                   className="backdrop-blur-sm rounded-lg p-2 inline-block"
-                  style={{ backgroundColor: `${config?.accentColor || '#ff6b35'}cc` }}
+                  style={{ backgroundColor: `${accentColor}cc` }}
                >
                   <p className="text-white text-xs font-bold">
                      {config?.welcomeMessage || '欢迎来到虚视界直播间，严禁违规言论！'}
@@ -295,7 +363,7 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
                {comments.map((c, i) => (
                   <div key={i} className="flex items-start gap-2 animate-in slide-in-from-bottom-2 fade-in duration-300">
                      <div className="bg-black/20 backdrop-blur-md rounded-xl px-3 py-1.5 text-xs text-white shadow-sm border border-white/5 inline-block max-w-full break-words">
-                        <span className="font-bold mr-2" style={{ color: `${config?.accentColor || '#ff6b35'}aa` }}>{c.user}:</span>
+                        <span className="font-bold mr-2" style={{ color: `${accentColor}aa` }}>{c.user}:</span>
                         {c.text}
                      </div>
                   </div>
@@ -316,7 +384,6 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
                   />
                </div>
 
-               {/* Interactions Button */}
                <button
                   onClick={() => setShowInteractions(true)}
                   className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-white active:scale-95 transition-transform shadow-lg shadow-purple-500/30"
@@ -327,7 +394,7 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
                <button
                   onClick={handleSend}
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-95 transition-transform"
-                  style={{ backgroundColor: config?.accentColor || '#ff6b35' }}
+                  style={{ backgroundColor: accentColor }}
                >
                   <Send size={18} className="ml-0.5" />
                </button>
@@ -340,20 +407,14 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
          {/* Interactive Gameplay Zone (Bottom Sheet) */}
          {showInteractions && (
             <div className="absolute inset-0 z-50 flex flex-col justify-end animate-in fade-in duration-200">
-               {/* Backdrop */}
                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowInteractions(false)} />
-
-               {/* Content */}
                <div className="bg-white rounded-t-3xl p-5 relative z-10 animate-in slide-in-from-bottom duration-300 pb-8 border border-white/20 shadow-2xl">
                   <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-
                   <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">
                      <Zap className="text-primary-500 fill-current" size={20} />
                      互动玩法区
                   </h3>
-
                   <div className="space-y-6">
-                     {/* Section 1: Support Props */}
                      <div>
                         <h4 className="text-xs font-bold text-slate-400 mb-3">发送虚拟应援</h4>
                         <div className="grid grid-cols-5 gap-y-4 gap-x-2">
@@ -367,10 +428,8 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
                            ))}
                         </div>
                      </div>
-
-                     {/* Section 2: Activities */}
                      <div className="grid grid-cols-2 gap-3">
-                        <button className="bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-200 rounded-2xl p-4 flex items-center gap-3 active:scale-95 transition-transform relative overflow-hidden group">
+                        <button className="bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-200 rounded-2xl p-4 flex items-center gap-3 active:scale-95 transition-transform relative overflow-hidden">
                            <div className="absolute right-0 bottom-0 opacity-[0.08] transform translate-x-1/4 translate-y-1/4">
                               <Trophy size={80} />
                            </div>
@@ -383,7 +442,7 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
                            </div>
                         </button>
 
-                        <button className="bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3 active:scale-95 transition-transform relative overflow-hidden group">
+                        <button className="bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3 active:scale-95 transition-transform relative overflow-hidden">
                            <div className="absolute right-0 bottom-0 opacity-[0.08] transform translate-x-1/4 translate-y-1/4">
                               <Mic size={80} />
                            </div>
@@ -401,26 +460,25 @@ const LiveStreamScreen: React.FC<LiveStreamScreenProps> = ({ onClose }) => {
             </div>
          )}
 
-         {/* CSS for floating animation */}
+         {/* CSS for animations */}
          <style>{`
-        @keyframes float-up {
-          0% {
-            transform: translateY(20px) scale(0.8);
-            opacity: 0;
-          }
-          20% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(-80vh) scale(1.2);
-            opacity: 0;
-          }
-        }
-        .animate-float-up {
-          animation-name: float-up;
-          animation-fill-mode: forwards;
-        }
-      `}</style>
+                @keyframes float-up {
+                    0% { transform: translateY(20px) scale(0.8); opacity: 0; }
+                    20% { opacity: 1; }
+                    100% { transform: translateY(-80vh) scale(1.2); opacity: 0; }
+                }
+                .animate-float-up {
+                    animation-name: float-up;
+                    animation-fill-mode: forwards;
+                }
+                @keyframes avatar-float {
+                    0%, 100% { transform: translateY(0px) scale(1); }
+                    50% { transform: translateY(-12px) scale(1.02); }
+                }
+                .animate-avatar-float {
+                    animation: avatar-float 3s ease-in-out infinite;
+                }
+            `}</style>
       </div>
    );
 };
