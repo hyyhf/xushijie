@@ -57,7 +57,7 @@ Virtual Horizon 不仅仅是一个电商平台，它是连接虚拟与现实的�
 
 <div align="center">
   <br />
-  <img src="https://skillicons.dev/icons?i=react,ts,vite,supabase,tailwind,threejs,git,vscode" alt="Tech Stack" />
+  <img src="https://skillicons.dev/icons?i=react,ts,vite,supabase,tailwind,threejs" alt="Tech Stack" />
   <br />
   <p><strong>Extras:</strong> Recharts (Data Viz), Lucide React (Icons), DiceBear (Avatar API)</p>
   <br />
