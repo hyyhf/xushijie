@@ -47,7 +47,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({ orderId, total, payMethod
     return (
         <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col items-center justify-center px-6">
             {status === 'loading' && (
-                <div className="flex flex-col items-center gap-6 animate-fade-in">
+                <div className="w-full flex flex-col items-center gap-6 animate-fade-in">
                     {/* Payment animation */}
                     <div className="relative">
                         <div className="w-24 h-24 rounded-full border-4 border-gray-200 flex items-center justify-center">
@@ -65,7 +65,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({ orderId, total, payMethod
             )}
 
             {status === 'success' && (
-                <div className="flex flex-col items-center gap-6 animate-fade-in">
+                <div className="w-full flex flex-col items-center gap-6 animate-fade-in">
                     <div className="relative">
                         <div className="w-24 h-24 rounded-full bg-green-50 flex items-center justify-center">
                             <CheckCircle className="text-green-500" size={48} />
@@ -84,13 +84,13 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({ orderId, total, payMethod
                     <div className="flex gap-3 mt-4 w-full">
                         <button
                             onClick={() => onNavigate(AppScreen.HOME)}
-                            className="flex-1 h-11 border border-gray-200 rounded-full text-sm text-gray-600 font-medium flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                            className="flex-1 h-11 border border-gray-200 rounded-full text-sm text-gray-600 font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap"
                         >
                             <Home size={16} /> 回首页
                         </button>
                         <button
                             onClick={() => onNavigate(AppScreen.ORDER_LIST)}
-                            className="flex-1 h-11 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                            className="flex-1 h-11 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] whitespace-nowrap"
                         >
                             <ShoppingBag size={16} /> 查看订单
                         </button>
@@ -99,7 +99,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({ orderId, total, payMethod
             )}
 
             {status === 'failed' && (
-                <div className="flex flex-col items-center gap-6 animate-fade-in">
+                <div className="w-full flex flex-col items-center gap-6 animate-fade-in">
                     <div className="w-24 h-24 rounded-full bg-red-50 flex items-center justify-center">
                         <XCircle className="text-red-500" size={48} />
                     </div>
@@ -110,13 +110,13 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({ orderId, total, payMethod
                     <div className="flex gap-3 mt-4 w-full">
                         <button
                             onClick={() => onNavigate(AppScreen.ORDER_LIST)}
-                            className="flex-1 h-11 border border-gray-200 rounded-full text-sm text-gray-600 font-medium active:scale-[0.98]"
+                            className="flex-1 h-11 border border-gray-200 rounded-full text-sm text-gray-600 font-medium active:scale-[0.98] whitespace-nowrap"
                         >
                             查看订单
                         </button>
                         <button
                             onClick={() => setStatus('loading')}
-                            className="flex-1 h-11 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full text-sm font-medium active:scale-[0.98]"
+                            className="flex-1 h-11 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full text-sm font-medium active:scale-[0.98] whitespace-nowrap"
                         >
                             重新支付
                         </button>

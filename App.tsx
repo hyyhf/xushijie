@@ -9,10 +9,13 @@ import HotProductsScreen from './pages/HotProductsScreen';
 import CommunityScreen from './pages/CommunityScreen';
 import LiveStreamScreen from './pages/LiveStreamScreen';
 import ProfileScreen from './pages/ProfileScreen';
+import ProfileEditScreen from './pages/ProfileEditScreen';
 import LiveRoomCustomizeScreen from './pages/LiveRoomCustomizeScreen';
 import ProductDetailScreen from './pages/ProductDetailScreen';
 import CartScreen from './pages/CartScreen';
 import CheckoutScreen from './pages/CheckoutScreen';
+import AddressManageScreen from './pages/AddressManageScreen';
+import AddressEditScreen from './pages/AddressEditScreen';
 import PaymentScreen from './pages/PaymentScreen';
 import OrderListScreen from './pages/OrderListScreen';
 import OrderDetailScreen from './pages/OrderDetailScreen';
@@ -119,7 +122,7 @@ export default function App() {
       case AppScreen.COMMUNITY:
         return <CommunityScreen onNavigate={handleNavigate} />;
       case AppScreen.LIVE_STREAM:
-        return <LiveStreamScreen onClose={() => setCurrentScreen(AppScreen.HOME)} />;
+        return <LiveStreamScreen onClose={() => setCurrentScreen(AppScreen.HOME)} onNavigate={handleNavigate} />;
       case AppScreen.AVATAR:
         return <AvatarScreen />;
       case AppScreen.MERCHANT_DASHBOARD:
@@ -128,6 +131,8 @@ export default function App() {
         return <SupportScreen />;
       case AppScreen.PROFILE:
         return <ProfileScreen onNavigate={handleNavigate} onLogout={handleLogout} />;
+      case AppScreen.PROFILE_EDIT:
+        return <ProfileEditScreen onNavigate={handleNavigate} />;
       case AppScreen.LIVE_ROOM_CUSTOMIZE:
         return <LiveRoomCustomizeScreen onNavigate={handleNavigate} />;
 
@@ -137,7 +142,24 @@ export default function App() {
       case AppScreen.CART:
         return <CartScreen onNavigate={handleNavigate} />;
       case AppScreen.CHECKOUT:
-        return <CheckoutScreen checkoutItems={navData?.items || []} onNavigate={handleNavigate} />;
+        return <CheckoutScreen
+          checkoutItems={navData?.items || []}
+          selectedAddress={navData?.selectedAddress}
+          onNavigate={handleNavigate}
+        />;
+      case AppScreen.ADDRESS_MANAGE:
+        return <AddressManageScreen
+          onNavigate={handleNavigate}
+          selectMode={navData?.from === 'checkout'}
+          onSelect={(addr) => {
+            // If in select mode (from checkout), go back to checkout with selected address
+            // We can pass the selected address back via navData or updated checkout state logic
+            // For now, let's assume CheckoutScreen re-fetches or we pass it back
+            handleNavigate(AppScreen.CHECKOUT, { ...navData, selectedAddress: addr });
+          }}
+        />;
+      case AppScreen.ADDRESS_EDIT:
+        return <AddressEditScreen onNavigate={handleNavigate} address={navData?.address} />;
       case AppScreen.PAYMENT:
         return <PaymentScreen orderId={navData?.orderId || ''} total={navData?.total || 0} payMethod={navData?.payMethod || 'alipay'} onNavigate={handleNavigate} />;
       case AppScreen.ORDER_LIST:

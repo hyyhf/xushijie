@@ -20,6 +20,8 @@ export interface Order {
     total: number;
     shipping_fee: number;
     discount: number;
+    coupon_id?: string;
+    coupon_discount?: number;
     address_snapshot: UserAddress;
     payment_method: string;
     items: OrderItem[];
@@ -70,6 +72,7 @@ export interface CreateOrderParams {
     shipping_fee?: number;
     discount?: number;
     payment_method?: string;
+    coupon_id?: string;
 }
 
 // Create order
@@ -88,6 +91,8 @@ export async function createOrder(params: CreateOrderParams): Promise<Order | nu
         total: Math.max(0, total),
         shipping_fee: params.shipping_fee || 0,
         discount: params.discount || 0,
+        coupon_id: params.coupon_id,
+        coupon_discount: params.discount || 0,
         address_snapshot: params.address,
         payment_method: params.payment_method || '',
         items: params.items.map((item, idx) => ({
@@ -127,6 +132,8 @@ export async function createOrder(params: CreateOrderParams): Promise<Order | nu
                 total: order.total,
                 shipping_fee: order.shipping_fee,
                 discount: order.discount,
+                coupon_id: params.coupon_id || null,
+                coupon_discount: params.discount || 0,
                 address_snapshot: params.address,
                 payment_method: params.payment_method || '',
             })
@@ -141,9 +148,12 @@ export async function createOrder(params: CreateOrderParams): Promise<Order | nu
         }
 
         // Insert order items
+        // Filter out invalid product IDs for Supabase (e.g. mock 'p1') or set to null
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
         const orderItems = params.items.map(item => ({
             order_id: orderData.id,
-            product_id: item.product_id,
+            product_id: uuidRegex.test(item.product_id) ? item.product_id : null,
             title: item.title,
             price: item.price,
             quantity: item.quantity,

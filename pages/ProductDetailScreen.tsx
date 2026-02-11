@@ -38,7 +38,12 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ productId, on
 
     const handleAddToCart = async () => {
         if (!product) return;
-        await addToCart(product.id, quantity);
+        await addToCart(product.id, quantity, {}, {
+            title: product.title,
+            price: product.price,
+            image_url: product.image_url,
+            stock: product.stock,
+        });
         const count = await getCartCount();
         setCartCount(count);
         setShowSpecPicker(false);
@@ -48,7 +53,12 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ productId, on
 
     const handleBuyNow = async () => {
         if (!product) return;
-        await addToCart(product.id, quantity);
+        await addToCart(product.id, quantity, {}, {
+            title: product.title,
+            price: product.price,
+            image_url: product.image_url,
+            stock: product.stock,
+        });
         const count = await getCartCount();
         setCartCount(count);
         setShowSpecPicker(false);

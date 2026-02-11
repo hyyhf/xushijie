@@ -28,11 +28,18 @@ function saveLocalCart(items: CartItem[]): void {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
 }
 
-function addToLocalCart(productId: string, quantity: number, specs: Record<string, string>): boolean {
+function addToLocalCart(productId: string, quantity: number, specs: Record<string, string>, productInfo?: { title?: string; price?: number; image_url?: string; stock?: number }): boolean {
     const cart = getLocalCart();
     const existing = cart.find(i => i.product_id === productId && JSON.stringify(i.specs) === JSON.stringify(specs));
     if (existing) {
         existing.quantity += quantity;
+        // Update product info if provided
+        if (productInfo) {
+            if (productInfo.title) existing.title = productInfo.title;
+            if (productInfo.price !== undefined) existing.price = productInfo.price;
+            if (productInfo.image_url) existing.image_url = productInfo.image_url;
+            if (productInfo.stock !== undefined) existing.stock = productInfo.stock;
+        }
     } else {
         cart.push({
             id: `local_${Date.now()}`,
@@ -40,6 +47,7 @@ function addToLocalCart(productId: string, quantity: number, specs: Record<strin
             quantity,
             selected: true,
             specs,
+            ...(productInfo || {}),
         });
     }
     saveLocalCart(cart);
@@ -48,13 +56,15 @@ function addToLocalCart(productId: string, quantity: number, specs: Record<strin
 
 // Get all cart items
 export async function getCartItems(): Promise<CartItem[]> {
+    const localItems = getLocalCart();
+
     if (!isSupabaseConfigured || !supabase) {
-        return getLocalCart();
+        return localItems;
     }
 
     try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return getLocalCart();
+        if (!user) return localItems;
 
         const { data, error } = await supabase
             .from('cart_items')
@@ -65,9 +75,9 @@ export async function getCartItems(): Promise<CartItem[]> {
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
 
-        if (error || !data) return getLocalCart();
+        if (error || !data) return localItems;
 
-        return data.map((item: any) => ({
+        const supabaseItems: CartItem[] = data.map((item: any) => ({
             id: item.id,
             product_id: item.product_id,
             quantity: item.quantity,
@@ -78,20 +88,34 @@ export async function getCartItems(): Promise<CartItem[]> {
             image_url: item.products?.image_url,
             stock: item.products?.stock || 999,
         }));
+
+        // Merge: Supabase items first, then local-only items (not in Supabase)
+        const supabaseProductIds = new Set(supabaseItems.map(i => i.product_id));
+        const localOnly = localItems.filter(i => !supabaseProductIds.has(i.product_id));
+        return [...supabaseItems, ...localOnly];
     } catch {
-        return getLocalCart();
+        return localItems;
     }
 }
 
 // Add item to cart
-export async function addToCart(productId: string, quantity: number = 1, specs: Record<string, string> = {}): Promise<boolean> {
+export async function addToCart(productId: string, quantity: number = 1, specs: Record<string, string> = {}, productInfo?: { title?: string; price?: number; image_url?: string; stock?: number }): Promise<boolean> {
+    // Always also save to localStorage so cart data is never lost
+    addToLocalCart(productId, quantity, specs, productInfo);
+
+    // Skip Supabase for non-UUID product IDs (mock data like 'p1', 'p2')
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(productId)) {
+        return true;
+    }
+
     if (!isSupabaseConfigured || !supabase) {
-        return addToLocalCart(productId, quantity, specs);
+        return true;
     }
 
     try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return addToLocalCart(productId, quantity, specs);
+        if (!user) return true;
 
         // Check if item already exists
         const { data: existing, error: checkError } = await supabase
@@ -102,18 +126,16 @@ export async function addToCart(productId: string, quantity: number = 1, specs: 
             .maybeSingle();
 
         if (checkError) {
-            // Table might not exist, fall back to localStorage
-            return addToLocalCart(productId, quantity, specs);
+            return true; // Already saved to localStorage
         }
 
         if (existing) {
-            const { error } = await supabase
+            await supabase
                 .from('cart_items')
                 .update({ quantity: existing.quantity + quantity })
                 .eq('id', existing.id);
-            if (error) return addToLocalCart(productId, quantity, specs);
         } else {
-            const { error } = await supabase
+            await supabase
                 .from('cart_items')
                 .insert({
                     user_id: user.id,
@@ -122,12 +144,10 @@ export async function addToCart(productId: string, quantity: number = 1, specs: 
                     selected: true,
                     specs,
                 });
-            if (error) return addToLocalCart(productId, quantity, specs);
         }
         return true;
     } catch {
-        // Supabase failed, fall back to localStorage
-        return addToLocalCart(productId, quantity, specs);
+        return true; // Already saved to localStorage
     }
 }
 

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Settings, Camera, Heart, ShoppingBag, Grid3X3, Bookmark, LogOut, Edit2, ChevronRight } from 'lucide-react';
 import { AppScreen } from '../types';
 import { useUser } from '../src/lib/userContext';
 import { getPosts, Post } from '../src/services/postService';
 import { signOut } from '../src/services/authService';
+import { uploadAvatar, getProfile } from '../src/services/profileService';
 
 interface ProfileScreenProps {
     onNavigate: (screen: AppScreen, data?: any) => void;
@@ -15,6 +16,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate, onLogout }) =
     const [activeTab, setActiveTab] = useState<'posts' | 'likes' | 'saved'>('posts');
     const [userPosts, setUserPosts] = useState<Post[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [avatarUrl, setAvatarUrl] = useState<string>('');
+    const [toast, setToast] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Load user's posts
     useEffect(() => {
@@ -29,6 +33,34 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate, onLogout }) =
         };
         loadUserPosts();
     }, [user?.id]);
+
+    // Load profile avatar
+    useEffect(() => {
+        const loadProfile = async () => {
+            const profile = await getProfile();
+            if (profile?.avatar_url) {
+                setAvatarUrl(profile.avatar_url);
+            }
+        };
+        loadProfile();
+    }, []);
+
+    const showToast = (msg: string) => {
+        setToast(msg);
+        setTimeout(() => setToast(null), 2000);
+    };
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { showToast('请选择图片文件'); return; }
+        if (file.size > 5 * 1024 * 1024) { showToast('图片不能超过5MB'); return; }
+        const url = await uploadAvatar(file);
+        if (url) {
+            setAvatarUrl(url);
+            showToast('头像已更新');
+        }
+    };
 
     const handleLogout = async () => {
         await signOut();
@@ -65,15 +97,19 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate, onLogout }) =
                         <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-400 to-orange-500 p-0.5">
                             <div className="w-full h-full rounded-full overflow-hidden bg-white">
                                 <img
-                                    src={user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'default'}`}
+                                    src={avatarUrl || user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'default'}`}
                                     alt="Avatar"
                                     className="w-full h-full object-cover"
                                 />
                             </div>
                         </div>
-                        <button className="absolute bottom-0 right-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white shadow-lg">
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="absolute bottom-0 right-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white shadow-lg active:scale-95 transition-transform"
+                        >
                             <Camera size={16} />
                         </button>
+                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
                     </div>
 
                     {/* Username */}
@@ -101,7 +137,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate, onLogout }) =
                     </div>
 
                     {/* Edit Profile Button */}
-                    <button className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-100 rounded-full text-sm font-bold text-slate-700 hover:bg-slate-200 transition-colors">
+                    <button
+                        onClick={() => onNavigate(AppScreen.PROFILE_EDIT)}
+                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-100 rounded-full text-sm font-bold text-slate-700 hover:bg-slate-200 transition-colors"
+                    >
                         <Edit2 size={16} />
                         编辑资料
                     </button>
@@ -232,6 +271,13 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate, onLogout }) =
                     <ChevronRight className="text-red-400" size={20} />
                 </button>
             </div>
+
+            {/* Toast */}
+            {toast && (
+                <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-black/70 text-white px-6 py-3 rounded-lg text-sm font-medium">
+                    {toast}
+                </div>
+            )}
         </div>
     );
 };

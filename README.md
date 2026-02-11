@@ -1,7 +1,6 @@
-
 <div align="center">
   <br />
-  <h1>🌌 Virtual Horizon</h1>
+  <h1>🌌 Virtual Horizon (虚视界)</h1>
   <h3>虚视界 · 穿越次元的购物体验</h3>
   <p>
     <b>下一代 3D 虚拟电商与社交平台</b>
@@ -27,17 +26,26 @@
 Virtual Horizon 不仅仅是一个电商平台，它是连接虚拟与现实的桥梁。在这里，购物不再是枯燥的浏览列表，而是一场探索未知的旅程。
 
 ### 🛒 沉浸式购物体系
-- **完整闭环**: 从浏览热销好物、加入购物车、到模拟支付与订单追踪，提供丝滑流畅的购物体验。
+- **完整闭环**: 从浏览热销好物、加入购物车、多地址管理到模拟支付与订单追踪，提供丝滑流畅的购物体验。
 - **智能购物车**: 本地化存储加云端同步（Supabase），确保你的心仪好物永不丢失，支持离线操作。
 - **订单管理**: 实时查看订单状态（待付款/发货/收货/评价），每一步都清晰可见。
 
-### 💃 3D 虚拟化身 (Avatar)
+### 💃 3D 虚拟化身 (Avatar) 系统
 - **数字替身**: 内置轻量级 3D 引擎，支持查看和互动虚拟形象。
-- **个性定制**: (开发中) 捏脸、换装，打造独一无二的元宇宙身份。
+- **深度定制**: 提供丰富的捏脸选项（发型、脸型、妆容、服装、配色），支持多风格切换（如 Micah, Bottts 等）。
+- **场景与特效**: 支持更换直播背景（不同主题预设）和动态粒子特效（闪光、爱心、火焰等）。
+- **动作与语音**: 可配置虚拟角色的动作触发和语音声线，打造个性化交互体验。
 
-### 🌏 互动社区与直播
+### 🎥 直播间与创作者工具
+- **直播间装修**: 商家/主播可自定义直播间主题、背景图、主播信息的显示风格。
+- **营销工具**: 支持创建和发放优惠券（满减规则、自动发放配置），提升转化率。
+- **氛围营造**: 内置多种直播间氛围特效（彩带、气泡等），可实时控制开启。
 - **实时直播**: 模拟带货直播间，弹幕互动，商品秒杀，还原真实热闹的购物氛围。
-- **动态广场**: 分享好物，点赞评论，建立基于兴趣的社交圈子。
+
+### 📊 商家数据中心
+- **实时监控**: 实时查看在线人数 (Peak Viewers)、转化率 (CVR) 及人均停留时长。
+- **用户画像**: 可视化展示用户年龄、性别分布，帮助商家精准定位目标客群。
+- **地域热力**: 直观展示用户地域分布热力图，洞察市场潜力。
 
 ### 🎨 极致 UI/UX 设计
 - **Glassmorphism**: 全局采用现代化的玻璃拟态设计，视觉通透，质感高级。
@@ -51,6 +59,7 @@ Virtual Horizon 不仅仅是一个电商平台，它是连接虚拟与现实的�
   <br />
   <img src="https://skillicons.dev/icons?i=react,ts,vite,supabase,tailwind,threejs,git,vscode" alt="Tech Stack" />
   <br />
+  <p><strong>Extras:</strong> Recharts (Data Viz), Lucide React (Icons), DiceBear (Avatar API)</p>
   <br />
 </div>
 
@@ -85,11 +94,17 @@ npm run dev
 
 ```text
 src/
-├── components/   # 原子组件 (Avatar3DViewer, BottomNav...)
-├── pages/        # 页面视图 (ProductDetail, Cart, OrderList...)
-├── services/     # 业务逻辑 (cartService, orderService...)
-├── lib/          # 基础设施 (Supabase Client, Context)
-└── types/        # 类型定义
+├── components/           # 原子组件 (Avatar3DViewer, BottomNav...)
+├── pages/                # 页面视图 
+│   ├── MerchantScreen.tsx      # 商家数据中心 (Dashboard)
+│   ├── LiveStreamScreen.tsx    # 直播间前端 (Viewer)
+│   ├── LiveRoomCustomizeScreen.tsx # 直播间装修 (Streamer)
+│   ├── AvatarScreen.tsx        # 虚拟形象定制
+│   ├── AddressEditScreen.tsx   # 地址管理
+│   └── ...                     # 购物车、订单、个人中心等
+├── services/             # 业务逻辑 (cartService, merchantService, avatarService...)
+├── lib/                  # 基础设施 (Supabase Client, Context)
+└── types/                # 类型定义
 ```
 
 ---
